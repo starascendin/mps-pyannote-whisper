@@ -75,6 +75,10 @@ def cli():
     output_format: Literal['TXT', 'VTT', 'SRT'] = args.pop("output_format")
     os.makedirs(output_dir, exist_ok=True)
 
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token is None:
+        raise ValueError("HF_TOKEN environment variable is not set.")
+
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
         if args["language"] is not None:
             warnings.warn(
@@ -98,9 +102,10 @@ def cli():
     diarization = args.pop("diarization")
     if diarization:
         from pyannote.audio import Pipeline
-        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                            use_auth_token="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")
-
+        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1",
+                                            use_auth_token=hf_token)
+        pipeline.to(torch.device("mps"))
+        
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature,**args)
         audio_basename = os.path.basename(audio_path)
